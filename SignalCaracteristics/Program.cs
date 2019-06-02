@@ -32,13 +32,30 @@ namespace SignalCaracteristics
                             y.Add(float.Parse(values[4], CultureInfo.InvariantCulture));
                             z.Add(float.Parse(values[5], CultureInfo.InvariantCulture));
                         }
-                        Media(x, "Media Eje x");
-                        Media(y, "Media Eje y");
-                        Media(z, "Media Eje z");
 
-                        Moda(x, "Moda Eje x");
-                        Moda(y, "Moda Eje y");
-                        Moda(z, "Moda Eje z");
+                        var mediax = Media(x);
+                        var mediay = Media(y);
+                        var mediaz = Media(z);
+
+                        Console.WriteLine("Media Eje x: " + mediax + ", SD: " + SD(x, mediax));
+                        Console.WriteLine("Media Eje y: " + mediay + ", SD: " + SD(y, mediay));
+                        Console.WriteLine("Media Eje z: " + mediaz + ", SD: " + SD(z, mediaz));
+
+                        var modax = Moda(x);
+                        var moday = Moda(y);
+                        var modaz = Moda(z);
+
+                        Console.WriteLine("Moda Eje x: " + modax[0].ToString() + " con " + modax[1].ToString() + " aparici" + (modax[1] > 1 ? "ones" : "ón"));
+                        Console.WriteLine("Moda Eje x: " + moday[0].ToString() + " con " + moday[1].ToString() + " aparici" + (moday[1] > 1 ? "ones" : "ón"));
+                        Console.WriteLine("Moda Eje x: " + modaz[0].ToString() + " con " + modaz[1].ToString() + " aparici" + (modaz[1] > 1 ? "ones" : "ón"));
+
+                        Max(x, "Maximo Eje x");
+                        Max(y, "Maximo Eje y");
+                        Max(z, "Maximo Eje z");
+
+                        Min(x, "Minimo Eje x");
+                        Min(y, "Minimo Eje y");
+                        Min(z, "Minimo Eje z");
 
                         Console.WriteLine();
                     }
@@ -47,20 +64,18 @@ namespace SignalCaracteristics
             Console.Read();
         }
 
-        private static void Media(List<float> list, string label)
+        private static float Media(List<float> list)
         {
             var temp = 0.0;
             foreach (var item in list)
             {
                 temp += item;
             }
-
             temp /= list.Count;
-
-            Console.WriteLine(label + ": " + temp.ToString());
+            return (float) temp;
         }
 
-        private static void Moda(List<float> list, string label)
+        private static float[] Moda(List<float> list)
         {
             var temp = new Dictionary<float, int>();
             foreach (var item in list)
@@ -87,9 +102,44 @@ namespace SignalCaracteristics
                     key = item;
                 }
             }
-
-            Console.WriteLine(label + ": " + key.ToString() + " con " + temp[key] + " aparici" + (temp[key] > 1 ? "ones" : "ón"));
+            return new float[] { key, cant };
         }
 
+        private static void Max(List<float> list, string label)
+        {
+            var temp = float.MinValue;
+            foreach (var item in list)
+            {
+                if (item > temp)
+                {
+                    temp = item;
+                }
+            }
+            Console.WriteLine(label + ": " + temp);
+        }
+
+        private static void Min(List<float> list, string label)
+        {
+            var temp = float.MaxValue;
+            foreach (var item in list)
+            {
+                if (item < temp)
+                {
+                    temp = item;
+                }
+            }
+            Console.WriteLine(label + ": " + temp);
+        }
+
+        private static float SD(List<float> list, float media)
+        {
+            var temp = 0.0;
+            foreach (var item in list)
+            {
+                temp += MathF.Pow(item - media, 2);
+            }
+            temp /= list.Count;
+            return MathF.Sqrt((float)temp);
+        }
     }
 }
