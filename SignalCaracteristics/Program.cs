@@ -9,30 +9,30 @@ namespace SignalCaracteristics
     {
         static void Main(string[] args)
         {
+            Console.WriteLine("Generador de .arff para Weka\nSeleccione los sensores separados por coma");
+            var sensores = Console.ReadLine().Split(",");
+            var sen = new List<int>();
+            for (int i = 0; i < sensores.Length; i++)
+            {
+                sen.Add(int.Parse(sensores[i]));
+            }
             List<string> lines = new List<string>();
             lines.Add("@RELATION activity");
             lines.Add("");
-            lines.Add("@ATTRIBUTE s1mediaaccx\tREAL");
-            lines.Add("@ATTRIBUTE s1mediaaccy\tREAL");
-            lines.Add("@ATTRIBUTE s1mediaaccz\tREAL");
-            lines.Add("@ATTRIBUTE s1magxyz\tREAL");
-            lines.Add("@ATTRIBUTE s1sdmagxyz\tREAL");
-            lines.Add("@ATTRIBUTE s2mediaaccx\tREAL");
-            lines.Add("@ATTRIBUTE s2mediaaccy\tREAL");
-            lines.Add("@ATTRIBUTE s2mediaaccz\tREAL");
-            lines.Add("@ATTRIBUTE s2magxyz\tREAL");
-            lines.Add("@ATTRIBUTE s2sdmagxyz\tREAL");
+            for (int i = 0; i < sen.Count; i++)
+            {
+                lines.Add("@ATTRIBUTE s" + sen[i] + "mediaaccx\tREAL");
+                lines.Add("@ATTRIBUTE s" + sen[i] + "mediaaccy\tREAL");
+                lines.Add("@ATTRIBUTE s" + sen[i] + "mediaaccz\tREAL");
+                lines.Add("@ATTRIBUTE s" + sen[i] + "magxyz\tREAL");
+                lines.Add("@ATTRIBUTE s" + sen[i] + "sdmagxyz\tREAL");
+            }
             lines.Add("@ATTRIBUTE class\t{caminando,subiendo-pendiente,bajando-pendiente,subiendo-escaleras,bajando-escaleras}");
             lines.Add("");
             lines.Add("@DATA");
-            
-            //Console.WriteLine("Actividad\n[1] caminando\n[2] subiendo-pendiente\n[3] bajando-pendiente\n[4]subiendo-escaleras\n[5] bajando-escaleras");
-            //var act = Console.ReadLine();
-            //using (var reader = new StreamReader(@"C:\test.csv"))
-            var act = "";
             foreach (string dir in Directory.GetDirectories(System.IO.Directory.GetCurrentDirectory()))
             {
-                act = dir.Substring(System.IO.Directory.GetCurrentDirectory().Length + 1);
+                var act = dir.Substring(System.IO.Directory.GetCurrentDirectory().Length + 1);
                 var files = Directory.GetFiles(dir);
                 foreach (var item in files)
                 {
@@ -41,74 +41,42 @@ namespace SignalCaracteristics
                         Console.WriteLine(Path.GetFileName(item));
                         using (var reader = new StreamReader(item))
                         {
-                            List<float> s1x = new List<float>();
-                            List<float> s1y = new List<float>();
-                            List<float> s1z = new List<float>();
-                            List<float> s1mag = new List<float>();
-                            List<float> s2x = new List<float>();
-                            List<float> s2y = new List<float>();
-                            List<float> s2z = new List<float>();
-                            List<float> s2mag = new List<float>();
+                            List<SensorData> s = new List<SensorData>();
+                            foreach (var i in sen)
+                            {
+                                s.Add(new SensorData());
+                            }
                             var line = reader.ReadLine();
                             var values = line.Split(',');
                             while (!reader.EndOfStream)
                             {
                                 line = reader.ReadLine();
                                 values = line.Split(',');
-                                if (int.Parse(values[0]) == 3)
+
+                                if (sen.Contains(int.Parse(values[0])))
                                 {
-                                    s1x.Add(float.Parse(values[3], CultureInfo.InvariantCulture));
-                                    s1y.Add(float.Parse(values[4], CultureInfo.InvariantCulture));
-                                    s1z.Add(float.Parse(values[5], CultureInfo.InvariantCulture));
-                                }
-                                else if (int.Parse(values[0]) == 4)
-                                {
-                                    s2x.Add(float.Parse(values[3], CultureInfo.InvariantCulture));
-                                    s2y.Add(float.Parse(values[4], CultureInfo.InvariantCulture));
-                                    s2z.Add(float.Parse(values[5], CultureInfo.InvariantCulture));
+                                    var index = sen.IndexOf(int.Parse(values[0]));
+                                    s[index].AddX(float.Parse(values[3].Trim(), CultureInfo.InvariantCulture));
+                                    s[index].AddY(float.Parse(values[4].Trim(), CultureInfo.InvariantCulture));
+                                    s[index].AddZ(float.Parse(values[5].Trim(), CultureInfo.InvariantCulture));
                                 }
                             }
-                            s1mag = Magnitud(s1x, s1y, s1z);
-                            s2mag = Magnitud(s2x, s2y, s2z);
-                            lines.Add(FloatFormat(Media(s1x)) + "," + FloatFormat(Media(s1y)) + "," + FloatFormat(Media(s1z)) + "," + FloatFormat(Media(s1mag)) + "," + FloatFormat(SD(s1mag, Media(s1mag))) + "," + FloatFormat(Media(s2x)) + "," + FloatFormat(Media(s2y)) + "," + FloatFormat(Media(s2z)) + "," + FloatFormat(Media(s2mag)) + "," + FloatFormat(SD(s2mag, Media(s2mag))) + "," + act);
+
+                            var row = "";
+                            for (int i = 0; i < sen.Count; i++)
+                            {
+                                row += s[i].ToString() + ",";
+                            }
+                            if (!row.Contains("NaN"))
+                            {
+                                lines.Add(row + act);
+                            }
                             Console.WriteLine();
                         }
                     }
                 }
             }
             System.IO.File.WriteAllLines(System.IO.Directory.GetCurrentDirectory() + "\\actividad.arff", lines);
-        }
-
-        private static string FloatFormat(float value){
-            return value.ToString().Replace(",", ".");
-        }
-
-        private static string Actividad(int act)
-        {
-            switch (act)
-            {
-                case 1:
-                    return "caminando";
-                case 2:
-                    return "subiendo-pendiente";
-                case 3:
-                    return "bajando-pendiente";
-                case 4:
-                    return "subiendo-escaleras";
-                default:
-                    return "bajando-escaleras";
-            }
-        }
-
-        private static float Media(List<float> list)
-        {
-            var temp = 0.0;
-            foreach (var item in list)
-            {
-                temp += item;
-            }
-            temp /= list.Count;
-            return (float)temp;
         }
 
         private static float[] Moda(List<float> list)
@@ -165,27 +133,6 @@ namespace SignalCaracteristics
                 }
             }
             Console.WriteLine(label + ": " + temp);
-        }
-
-        private static float SD(List<float> list, float media)
-        {
-            var temp = 0.0;
-            foreach (var item in list)
-            {
-                temp += MathF.Pow(item - media, 2);
-            }
-            temp /= list.Count;
-            return MathF.Sqrt((float)temp);
-        }
-
-        private static List<float> Magnitud(List<float> x, List<float> y, List<float> z)
-        {
-            List<float> mag = new List<float>();
-            for (int i = 0; i < x.Count; i++)
-            {
-                mag.Add(MathF.Sqrt(MathF.Pow(x[i], 2) + MathF.Pow(y[i], 2) + MathF.Pow(z[i], 2)));
-            }
-            return mag;
         }
     }
 }
